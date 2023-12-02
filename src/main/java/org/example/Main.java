@@ -3,19 +3,30 @@ package org.example;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.example.ReplaceVariable.replaceVariableInFile;
+
 public class Main {
+
+    static final String TEX = ".tex";
+
     public static void main(String[] args) throws IOException, InterruptedException {
 
         System.out.println("Start to create pdf file");
 
         String xelatexCompiler = "xelatex";
-        String texFilePath = "/home/konnov/IdeaProjects/CreatePDF/templates/main";
+        String nameTexFile = "main";
+        String copyNameTexFile = "main2";
+        String workDirectory = "/home/konnov/IdeaProjects/CreatePDF/templates/";
 
-        ProcessBuilder processBuilder = new ProcessBuilder(xelatexCompiler, texFilePath + ".tex");
-        processBuilder.directory(new File("/home/konnov/IdeaProjects/CreatePDF/templates/"));
+        replaceVariableInFile(workDirectory, nameTexFile + TEX,copyNameTexFile + TEX,
+                "VAR::surname", "Konnov");
+
+        ProcessBuilder processBuilder = new ProcessBuilder(xelatexCompiler, workDirectory + copyNameTexFile + TEX);
+        processBuilder.directory(new File(workDirectory));
 
         Process process = processBuilder.start();
         int exitCode = process.waitFor();
@@ -25,7 +36,9 @@ public class Main {
         } else {
             System.out.println("Compile failed");
         }
-        deleteUselessFiles(texFilePath);
+        Files.copy(Path.of(workDirectory + copyNameTexFile + ".pdf"), Path.of(workDirectory + nameTexFile + ".pdf"));
+
+        deleteUselessFiles(workDirectory + copyNameTexFile);
 
     }
 
@@ -37,6 +50,8 @@ public class Main {
         set.add(".log");
         set.add(".out");
         set.add(".run.xml");
+        set.add(".tex");
+        set.add(".pdf");
 
         for (String s:set) {
             File file = new File(name + s);
