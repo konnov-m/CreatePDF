@@ -7,8 +7,10 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Document;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -20,14 +22,13 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.example.TexToPdf.pdf.TexPdf.*;
 import static com.example.TexToPdf.utils.TexFiles.saveFileToLocalDisk;
 
 
 @Component
 @PropertySource("application.properties")
 public class TelegramBot extends TelegramLongPollingBot {
-
-    static final String CREATE_VARS = "create vars:";
 
     static final String CREATE_PDF = "create pdf:";
 
@@ -48,24 +49,48 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             String fileName = d.getFileName();
             String fileId = d.getFileId();
-            System.out.println(fileId);
+            String chatId = String.valueOf(update.getMessage().getChatId());
+
+            if (!fileName.endsWith(TEX)) {
+                sendMessage(update.getMessage().getChatId(), "You can send me only .tex files");
+                return;
+            }
+
+            log.info("File is send from " + chatId + "File name is " + fileName);
+
+            deleteIfExists(getFullPathToTex(chatId));
+
             File file;
             try {
                 file = uploadFile(fileId);
-                saveFileToLocalDisk(file, "/var/files/TexToPdfBot/" + update.getMessage().getChatId() + ".tex");
+                saveFileToLocalDisk(file, getFullPathToTex(chatId));
             } catch (TelegramApiException | IOException e) {
                 throw new RuntimeException(e);
             }
-
+            sendMessage(update.getMessage().getChatId(), "The file was downloaded to the server");
 
 
         } else if (update.hasMessage() && update.getMessage().hasText() &&
                 update.getMessage().getText().toLowerCase().contains(CREATE_PDF)) {
 
-            Map<String, String> mapData = new HashMap<>();
-            String stringData = update.getMessage().getText().toLowerCase();
+
+
+            String chatId = String.valueOf(update.getMessage().getChatId());
+
+            File file = new File(getFullPathToTex(chatId));
+
+            if (!file.exists()) {
+                log.info("There is no .tex file to compile in chat " + chatId);
+                sendMessage(update.getMessage().getChatId(), "There is no .tex file to compile.");
+                return;
+            }
+
+            Map<String, String> vars = new HashMap<>();
+            String stringData = update.getMessage().getText();
+            stringData = stringData.substring(CREATE_PDF.length());
+
             log.info("String to parse: " + stringData);
-            stringData = stringData.replace(CREATE_PDF, "");
+
             String[] stringArr = stringData.split(",|;|\n");
 
             for (int i = 0; i < stringArr.length; i++) {
@@ -73,13 +98,30 @@ public class TelegramBot extends TelegramLongPollingBot {
                 String[] splitedArgs = args.split("=");
 
                 if (splitedArgs.length == 2 && !splitedArgs[0].isEmpty() && !splitedArgs[1].isEmpty()) {
-                    mapData.put(splitedArgs[0], splitedArgs[1]);
+                    vars.put(splitedArgs[0], splitedArgs[1]);
                 } else {
                     sendMessage(update.getMessage().getChatId(), "Incorrect data. Check /help.");
                     break;
                 }
             }
             // Create pdf here
+            if (createPdf(chatId, vars)) {
+                try {
+                    SendDocument sendDocument = new SendDocument();
+                    sendDocument.setChatId(chatId);
+                    log.info("File to send is " + getFullPathToPdf(chatId));
+                    sendDocument.setCaption(update.getMessage().getCaption());
+                    sendDocument.setDocument(new InputFile(new File(getFullPathToPdf(chatId))));
+                    execute(sendDocument);
+                } catch (TelegramApiException e) {
+                    log.error(e.getMessage());
+                }
+            } else {
+                sendMessage(update.getMessage().getChatId(), "There are some errors. Try again.");
+            }
+
+
+
 
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
