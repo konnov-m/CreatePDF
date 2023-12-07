@@ -64,6 +64,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             try {
                 file = uploadFile(fileId);
                 saveFileToLocalDisk(file, getFullPathToTex(chatId));
+                file.delete();
             } catch (TelegramApiException | IOException e) {
                 throw new RuntimeException(e);
             }
