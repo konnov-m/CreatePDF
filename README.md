@@ -7,5 +7,6 @@
 6. sudo apt install ttf-mscorefonts-installer
 7. sudo fc-cache -f
 8. cd CreatePDF
-9. ./gradlew bootJar
-10. java -jar build/libs/TexToPdf.jar
+9. Заполнить bot.name и bot.token в [application.properties](src%2Fmain%2Fresources%2Fapplication.properties)
+10. ./gradlew bootJar
+11. java -jar build/libs/TexToPdf.jar
