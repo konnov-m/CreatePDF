@@ -7,6 +7,5 @@
 6. sudo apt install ttf-mscorefonts-installer
 7. sudo fc-cache -f
 8. cd CreatePDF
-9. Change directory with .tex file
-10. ./gradlew jar
-11. java -jar build/libs/CreatePDF.jar
+9. ./gradlew bootJar
+10. java -jar build/libs/TexToPdf.jar
