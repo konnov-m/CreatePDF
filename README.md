@@ -10,3 +10,6 @@
 9.  Change bot.name and bot.token in [application.properties](src%2Fmain%2Fresources%2Fapplication.properties)
 9. ./gradlew bootJar
 10. java -jar build/libs/TexToPdf.jar
+
+# Суть проекта
+Это телеграм бот, в который можно отправить .tex-файл и получить .pdf. Компиляция в pdf происходит с помощью инструментов texlive. Можно не просто скомпиляровать pdf, но также вставить туда свои переменные (имя, фамилия, номер телефона и др.), это позволяет создавать похожие pdf-файлы легко и быстро.
